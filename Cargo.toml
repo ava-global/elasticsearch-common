@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "query",
+    "query_derive"
+]
