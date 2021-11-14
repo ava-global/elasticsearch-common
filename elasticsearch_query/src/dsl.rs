@@ -1,4 +1,6 @@
 use bigdecimal::BigDecimal;
+use serde::ser::SerializeMap;
+use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QueryClause {
@@ -13,6 +15,56 @@ pub enum QueryClause {
     },
 }
 
+pub struct InnerQueryClause<'a>(&'a QueryClause);
+pub struct InnerRange<'a>(&'a BigDecimal, &'a BigDecimal);
+
+impl<'a> Serialize for InnerQueryClause<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let query = self.0;
+        match query {
+            QueryClause::Match { field, search_val } => {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry(field, search_val)?;
+                map.end()
+            }
+            QueryClause::Range { field, gte, lte } => {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry(field, &InnerRange(gte, lte))?;
+                map.end()
+            }
+        }
+    }
+}
+
+impl<'a> Serialize for InnerRange<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(2))?;
+        map.serialize_entry("gte", self.0)?;
+        map.serialize_entry("lte", self.1)?;
+        map.end()
+    }
+}
+
+impl Serialize for QueryClause {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(1))?;
+        match self {
+            q @ QueryClause::Match { .. } => map.serialize_entry("match", &InnerQueryClause(q))?,
+            q @ QueryClause::Range { .. } => map.serialize_entry("range", &InnerQueryClause(q))?,
+        }
+        map.end()
+    }
+}
+
 pub trait ToClause {
     fn to_clause(&self, field: String) -> QueryClause;
 }
@@ -20,10 +72,10 @@ pub trait ToClause {
 #[cfg(test)]
 mod tests {
 
-    use bigdecimal::BigDecimal;
-    use bigdecimal::FromPrimitive;
+    use bigdecimal::{BigDecimal, FromPrimitive};
 
     use elasticsearch_query_derive::Clauseable;
+    use serde_json::json;
 
     use crate::dsl::QueryClause;
 
@@ -104,5 +156,41 @@ mod tests {
             gte: BigDecimal::from_i32(5).unwrap(),
         }];
         assert_eq!(expected, clauses,)
+    }
+
+    #[test]
+    fn query_match_clause_should_serialize_correctly() {
+        let expect = json!({
+            "match": {
+                "fund_name": "global"
+            }
+        })
+        .to_string();
+        let query = QueryClause::Match {
+            field: "fund_name".into(),
+            search_val: "global".into(),
+        };
+
+        assert_eq!(expect, json!(query).to_string());
+    }
+
+    #[test]
+    fn query_range_clause_should_serialize_correctly() {
+        let expect = json!({
+            "range": {
+                "risk_spectrum": {
+                    "gte": "2",
+                    "lte": "5"
+                }
+            }
+        })
+        .to_string();
+        let query = QueryClause::Range {
+            field: "risk_spectrum".into(),
+            gte: BigDecimal::from_i32(2).unwrap(),
+            lte: BigDecimal::from_i32(5).unwrap(),
+        };
+
+        assert_eq!(expect, json!(query).to_string());
     }
 }
