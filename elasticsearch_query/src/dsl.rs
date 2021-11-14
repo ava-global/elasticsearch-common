@@ -23,7 +23,7 @@ mod tests {
     use bigdecimal::BigDecimal;
     use bigdecimal::FromPrimitive;
 
-    use query_derive::Clauseable;
+    use elasticsearch_query_derive::Clauseable;
 
     use crate::dsl::QueryClause;
 

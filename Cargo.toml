@@ -1,6 +1,6 @@
 [workspace]
 
 members = [
-    "query",
-    "query_derive"
+    "elasticsearch_query",
+    "elasticsearch_query_derive"
 ]

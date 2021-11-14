@@ -1,5 +1,5 @@
 [package]
-name = "query"
+name = "elasticsearch_query"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 bigdecimal = { version = "0.1.2", features = ["serde"] }
-query_derive = {path = "../query_derive"}
+elasticsearch_query_derive = {path = "../elasticsearch_query_derive"}

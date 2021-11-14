@@ -5,7 +5,7 @@ use quote::quote;
 use syn::{self, parse_macro_input, DataStruct, DeriveInput, Fields, Ident};
 
 #[proc_macro_derive(Clauseable, attributes(search_field))]
-pub fn calusesable_derive(input: TokenStream) -> TokenStream {
+pub fn clausable_derive(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, data, .. } = parse_macro_input!(input);
     match data {
         syn::Data::Struct(DataStruct { fields, .. }) => {
@@ -31,7 +31,7 @@ fn impl_to_clauses(struct_name: &Ident, fields: Fields) -> TokenStream {
             let field_ident = &field.ident.unwrap();
             vec_push_expr.push(quote! {
 
-                if let Some(criteria_value) = self.#field_ident {
+                if let Some(ref criteria_value) = self.#field_ident {
                     clauses.push(criteria_value.to_clause(#search_field_value.into()));
                 }
 
