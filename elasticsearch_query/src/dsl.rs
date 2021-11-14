@@ -2,6 +2,8 @@ use bigdecimal::BigDecimal;
 use serde::ser::SerializeMap;
 use serde::Serialize;
 
+/// A query clauses which represent an Elasticserach Leaf Query DSL.
+/// [Query DSL]: <https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html>
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QueryClause {
     Match {

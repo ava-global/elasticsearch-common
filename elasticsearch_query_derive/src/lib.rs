@@ -4,6 +4,10 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{self, parse_macro_input, DataStruct, DeriveInput, Fields, Ident};
 
+/// A derive proc macro for generating `Vec<QueryClause>` from Graphql Criteria struct.
+/// Use `to_clauses` function to get a list of query clauses.
+/// All field must be `Option<T: ToClause>` type.
+/// Find an example in `elasticsearch_query::dsl::tests`
 #[proc_macro_derive(Clauseable, attributes(search_field))]
 pub fn clausable_derive(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, data, .. } = parse_macro_input!(input);
@@ -49,26 +53,4 @@ fn impl_to_clauses(struct_name: &Ident, fields: Fields) -> TokenStream {
         }
     };
     impl_block.into()
-}
-
-#[proc_macro_derive(HelloMacro)]
-pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
-    // Construct a representation of Rust code as a syntax tree
-    // that we can manipulate
-    let ast = parse_macro_input!(input);
-
-    // Build the trait implementation
-    impl_hello_macro(&ast)
-}
-
-fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
-    let name = &ast.ident;
-    let gen = quote! {
-        impl HelloMacro for #name {
-            fn hello_macro() {
-                println!("Hello, Macro! My name is {}!", stringify!(#name));
-            }
-        }
-    };
-    gen.into()
 }
