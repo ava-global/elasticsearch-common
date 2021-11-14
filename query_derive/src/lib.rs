@@ -32,13 +32,7 @@ fn impl_to_clauses(struct_name: &Ident, fields: Fields) -> TokenStream {
             vec_push_expr.push(quote! {
 
                 if let Some(criteria_value) = self.#field_ident {
-                    clauses.push(QueryClause::from(
-                            (
-                                #search_field_value.into(),
-                                criteria_value
-                            )
-                        )
-                    );
+                    clauses.push(criteria_value.to_clause(#search_field_value.into()));
                 }
 
             })

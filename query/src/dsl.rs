@@ -13,6 +13,10 @@ pub enum QueryClause {
     },
 }
 
+pub trait ToClause {
+    fn to_clause(&self, field: String) -> QueryClause;
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -23,16 +27,17 @@ mod tests {
 
     use crate::dsl::QueryClause;
 
+    use super::ToClause;
+
     #[derive(Debug, Clone, Copy)]
     pub struct Range {
         lower_bound: Option<i32>,
         upper_bound: Option<i32>,
     }
 
-    impl From<(String, Range)> for QueryClause {
-        fn from(tup: (String, Range)) -> Self {
-            let field = tup.0;
-            let range = tup.1;
+    impl ToClause for Range {
+        fn to_clause(&self, field: String) -> QueryClause {
+            let range = self;
             let gte = match range.lower_bound {
                 Some(lower_bound) => BigDecimal::from_i32(lower_bound).unwrap(),
                 None => BigDecimal::from_i32(i32::MIN).unwrap(),
