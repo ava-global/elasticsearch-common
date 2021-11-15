@@ -1,3 +1,5 @@
+use core::fmt;
+
 use bigdecimal::BigDecimal;
 use serde::ser::SerializeMap;
 use serde::Serialize;
@@ -15,6 +17,38 @@ pub enum QueryClause {
         gte: BigDecimal,
         lte: BigDecimal,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuerySort {
+    pub field_name: String,
+    pub ordering: SortType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SortType {
+    Asc,
+    Desc,
+}
+
+impl fmt::Display for SortType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SortType::Asc => write!(f, "asc"),
+            SortType::Desc => write!(f, "desc"),
+        }
+    }
+}
+
+impl Serialize for QuerySort {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(1))?;
+        map.serialize_entry(&self.field_name, &self.ordering.to_string())?;
+        map.end()
+    }
 }
 
 pub struct InnerQueryClause<'a>(&'a QueryClause);
@@ -79,7 +113,7 @@ mod tests {
     use elasticsearch_query_derive::Clauseable;
     use serde_json::json;
 
-    use crate::dsl::QueryClause;
+    use super::*;
 
     use super::ToClause;
 
@@ -194,5 +228,30 @@ mod tests {
         };
 
         assert_eq!(expect, json!(query).to_string());
+    }
+
+    #[test]
+    fn query_sort_should_serialize_correctly() {
+        let expect = json!({
+            "risk_spectrum": "asc"
+        })
+        .to_string();
+        let sort = QuerySort {
+            field_name: "risk_spectrum".into(),
+            ordering: SortType::Asc,
+        };
+
+        assert_eq!(expect, json!(sort).to_string());
+
+        let expect = json!({
+            "risk_spectrum": "desc"
+        })
+        .to_string();
+        let sort = QuerySort {
+            field_name: "risk_spectrum".into(),
+            ordering: SortType::Desc,
+        };
+
+        assert_eq!(expect, json!(sort).to_string());
     }
 }
