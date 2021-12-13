@@ -17,6 +17,10 @@ pub enum QueryClause {
         gte: BigDecimal,
         lte: BigDecimal,
     },
+    Terms {
+        field: String,
+        search_val: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -71,6 +75,11 @@ impl<'a> Serialize for InnerQueryClause<'a> {
                 map.serialize_entry(field, &InnerRange(gte, lte))?;
                 map.end()
             }
+            QueryClause::Terms { field, search_val } => {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry(field, search_val)?;
+                map.end()
+            }
         }
     }
 }
@@ -96,6 +105,7 @@ impl Serialize for QueryClause {
         match self {
             q @ QueryClause::Match { .. } => map.serialize_entry("match", &InnerQueryClause(q))?,
             q @ QueryClause::Range { .. } => map.serialize_entry("range", &InnerQueryClause(q))?,
+            q @ QueryClause::Terms { .. } => map.serialize_entry("terms", &InnerQueryClause(q))?,
         }
         map.end()
     }
@@ -253,5 +263,21 @@ mod tests {
         };
 
         assert_eq!(expect, json!(sort).to_string());
+    }
+
+    #[test]
+    fn query_terms_clause_should_serialize_correctly() {
+        let expect = json!({
+          "terms": {
+            "fund_id": ["1", "2", "4"]
+          }
+        })
+        .to_string();
+        let query = QueryClause::Terms {
+            field: "fund_id".into(),
+            search_val: vec!["1".to_string(), "2".to_string(), "4".to_string()],
+        };
+
+        assert_eq!(expect, json!(query).to_string());
     }
 }
