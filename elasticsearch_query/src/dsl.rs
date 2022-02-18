@@ -362,4 +362,24 @@ mod tests {
 
         assert_eq!(expect, json!(query).to_string());
     }
+
+    #[test]
+    fn query_wildcard_clause_should_serialize_correctly() {
+        let expect = json!({
+          "wildcard": {
+            "fund_code" : {
+                "value": "*set*",
+                "case_insensitive": true
+            }
+          }
+        })
+        .to_string();
+        let query = QueryClause::Wildcard {
+            field: "fund_code".into(),
+            search_val: "set".to_string(),
+            is_case_insensitive: true,
+        };
+
+        assert_eq!(expect, json!(query).to_string());
+    }
 }
