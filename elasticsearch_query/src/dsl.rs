@@ -26,6 +26,11 @@ pub enum QueryClause {
         search_val: String,
         is_case_insensitive: bool,
     },
+    Wildcard {
+        field: String,
+        search_val: String,
+        is_case_insensitive: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,6 +70,8 @@ pub struct InnerRange<'a>(&'a BigDecimal, &'a BigDecimal);
 
 pub struct InnerPrefix<'a>(&'a String, &'a bool);
 
+pub struct InnerWildcard<'a>(&'a String, &'a bool);
+
 impl<'a> Serialize for InnerQueryClause<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -96,6 +103,15 @@ impl<'a> Serialize for InnerQueryClause<'a> {
                 map.serialize_entry(field, &InnerPrefix(search_val, is_case_insensitive))?;
                 map.end()
             }
+            QueryClause::Wildcard {
+                field,
+                search_val,
+                is_case_insensitive,
+            } => {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry(field, &InnerWildcard(search_val, is_case_insensitive))?;
+                map.end()
+            }
         }
     }
 }
@@ -124,6 +140,18 @@ impl<'a> Serialize for InnerPrefix<'a> {
     }
 }
 
+impl<'a> Serialize for InnerWildcard<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(2))?;
+        map.serialize_entry("value", &format!("*{}*", self.0))?;
+        map.serialize_entry("case_insensitive", self.1)?;
+        map.end()
+    }
+}
+
 impl Serialize for QueryClause {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -136,6 +164,9 @@ impl Serialize for QueryClause {
             q @ QueryClause::Terms { .. } => map.serialize_entry("terms", &InnerQueryClause(q))?,
             q @ QueryClause::Prefix { .. } => {
                 map.serialize_entry("prefix", &InnerQueryClause(q))?
+            }
+            q @ QueryClause::Wildcard { .. } => {
+                map.serialize_entry("wildcard", &InnerQueryClause(q))?
             }
         }
         map.end()
@@ -326,6 +357,26 @@ mod tests {
         let query = QueryClause::Prefix {
             field: "fund_code".into(),
             search_val: "k-ghealth".to_string(),
+            is_case_insensitive: true,
+        };
+
+        assert_eq!(expect, json!(query).to_string());
+    }
+
+    #[test]
+    fn query_wildcard_clause_should_serialize_correctly() {
+        let expect = json!({
+          "wildcard": {
+            "fund_code" : {
+                "value": "*set*",
+                "case_insensitive": true
+            }
+          }
+        })
+        .to_string();
+        let query = QueryClause::Wildcard {
+            field: "fund_code".into(),
+            search_val: "set".to_string(),
             is_case_insensitive: true,
         };
 
